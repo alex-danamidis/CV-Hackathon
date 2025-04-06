@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, random_split
+from collections import Counter
 
 # Define transformations with data augmentation
 transform = transforms.Compose([
@@ -13,8 +14,15 @@ transform = transforms.Compose([
 ])
 
 # Load dataset
-dataset_path = r'C:\Users\potte\asl interpreter\CV-Hackathon\ASL_Dataset\asl_alphabet_train\asl_alphabet_train'
+dataset_path = r'C:\Users\Tyler\Desktop\Programming\Projects\alex-hackathon\CV-Hackathon\ASL_Dataset\asl_alphabet_train'
 dataset = datasets.ImageFolder(dataset_path, transform=transform)
+
+# Debugging dataset
+print(f"Total number of images in the dataset: {len(dataset)}")
+print(f"Classes in the dataset: {dataset.classes}")
+class_counts = Counter([label for _, label in dataset])
+print("Class distribution in dataset:")
+print(class_counts)
 
 # Split dataset into training and validation sets
 train_size = int(0.8 * len(dataset))
@@ -62,10 +70,12 @@ for epoch in range(10):
     for i, (images, labels) in enumerate(train_loader):
         optimizer.zero_grad()
         outputs = model(images)
+        print(f"Output logits for batch {i}: {outputs}")  # Debugging output
         loss = criterion(outputs, labels)
+        print(f"Loss for batch {i}: {loss.item()}")  # Debugging loss
         loss.backward()
         optimizer.step()
-        
+
         running_loss += loss.item()
         if i % 100 == 99:
             print(f'[Epoch {epoch+1}, Batch {i+1}] Loss: {running_loss / 100:.4f}')
@@ -81,14 +91,16 @@ for epoch in range(10):
     with torch.no_grad():
         for images, labels in val_loader:
             outputs = model(images)
+            print(f"Validation outputs (logits): {outputs}")  # Debugging output
             loss = criterion(outputs, labels)
             val_loss += loss.item()
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    print(f'Validation Loss: {val_loss / len(val_loader):.4f}, Accuracy: {100 * correct / total:.2f}%')
+    print(f'Validation Loss: {val_loss / len(val_loader):.4f}')
+    print(f'Validation Accuracy: {100 * correct / total:.2f}%')
 
 # Save the model state dict
-torch.save(model.state_dict(), r'C:\Users\potte\asl interpreter\CV-Hackathon\asl_model_state_dict.pt')
+torch.save(model.state_dict(), r'C:\Users\Tyler\Desktop\Programming\Projects\alex-hackathon\CV-Hackathon\asl_model_state_dict.pt')
 print("Model training complete. Saved model state dict.")

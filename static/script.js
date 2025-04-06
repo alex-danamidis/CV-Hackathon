@@ -1,86 +1,151 @@
-const video = document.getElementById("video");
-const gestureLabel = document.getElementById("gesture-label");
+const video = document.getElementById('video');
+const gestureLabel = document.getElementById('gesture-label');
 
-// ASL classes mapping (ensure this matches your training labels)
-const ASL_CLASSES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
+// Load ONNX model
+let session;
+const loadModel = async () => {
+  try {
+    session = await ort.InferenceSession.create('static/asl_model.onnx');
+    console.log('Model loaded');
+  } catch (err) {
+    console.error('Error loading model:', err);
+  }
+};
 
-// Load the ONNX model
-async function loadModel() {
-    try {
-        console.log("Loading model...");
-        const session = await ort.InferenceSession.create("/model/asl_model.onnx"); // Adjusted path
-        console.log("Model loaded successfully.");
-        return session;
-    } catch (error) {
-        console.error("Error loading model:", error);
-        gestureLabel.innerText = "Error loading model";
+// Set up webcam
+const setupCamera = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  } catch (err) {
+    console.error('Error accessing webcam: ', err);
+  }
+};
+
+// Initialize MediaPipe Hands
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+hands.onResults(onResults);
+
+// Create a canvas to capture cropped hand image
+const offscreenCanvas = document.createElement('canvas');
+const offscreenCtx = offscreenCanvas.getContext('2d');
+
+// Create a canvas to draw the bounding box and hand on the video
+const boundingBoxCanvas = document.createElement('canvas');
+const boundingBoxCtx = boundingBoxCanvas.getContext('2d');
+document.body.appendChild(boundingBoxCanvas); // Append canvas to body for drawing
+
+// Handle results from MediaPipe Hands
+async function onResults(results) {
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    gestureLabel.textContent = 'No Hand Detected';
+    return;
+  }
+
+  const handLandmarks = results.multiHandLandmarks[0];
+  const boundingBox = getBoundingBox(handLandmarks);
+
+  if (!boundingBox) {
+    gestureLabel.textContent = 'No Hand Detected';
+    return;
+  }
+
+  // Draw bounding box on the main canvas (video overlay)
+  drawBoundingBox(boundingBox);
+
+  // Crop the hand from the video
+  const { x, y, width, height } = boundingBox;
+  offscreenCanvas.width = width;
+  offscreenCanvas.height = height;
+  offscreenCtx.drawImage(video, x, y, width, height, 0, 0, width, height);
+
+  const tfImage = tf.browser.fromPixels(offscreenCanvas);
+
+  // Resize the cropped hand to 64x64
+  const resized = tf.image.resizeBilinear(tfImage, [64, 64]);
+  const normalized = resized.div(255.0);
+  const batched = normalized.expandDims(0);
+
+  // Create tensor
+  const inputTensor = new ort.Tensor('float32', batched.dataSync(), [1, 3, 64, 64]);
+  tfImage.dispose();
+  resized.dispose();
+  normalized.dispose();
+  batched.dispose();
+
+  // Predict using ONNX model
+  try {
+    const feeds = { input: inputTensor };
+    const resultsONNX = await session.run(feeds);
+
+    const output = resultsONNX.output.data;
+    const maxConfidence = Math.max(...output);
+    const predictedIndex = output.indexOf(maxConfidence);
+
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const confidenceThreshold = 0.7;
+
+    if (maxConfidence < confidenceThreshold) {
+      gestureLabel.textContent = 'No Gesture';
+    } else {
+      gestureLabel.textContent = alphabet[predictedIndex] || 'Detecting...';
     }
+
+    inputTensor.dispose();
+  } catch (error) {
+    console.error('Prediction error:', error);
+    gestureLabel.textContent = 'Error predicting';
+  }
 }
 
-// Start video stream
-async function startVideo() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        console.log("Video stream started.");
-    } catch (error) {
-        console.error("Error starting video stream:", error);
-        gestureLabel.innerText = "Error starting video stream";
-    }
+// Get bounding box from landmarks
+function getBoundingBox(landmarks) {
+  const xs = landmarks.map(p => p.x * video.videoWidth);
+  const ys = landmarks.map(p => p.y * video.videoHeight);
+
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  return {
+    x: Math.max(0, Math.floor(minX)),
+    y: Math.max(0, Math.floor(minY)),
+    width: Math.floor(width),
+    height: Math.floor(height)
+  };
 }
 
-// Detect ASL alphabet gestures in real-time
-async function detectGesture(session) {
-    try {
-        const webcam = await tf.data.webcam(video);
-
-        while (true) {
-            const img = await webcam.capture();
-            const resizedImg = tf.image.resizeBilinear(img, [64, 64]);
-            const normalizedImg = resizedImg.div(255.0).expandDims(0); // Normalize the image
-
-            // Convert from HWC (Height, Width, Channels) -> CHW (Channels, Height, Width) for ONNX
-            const transposedImg = normalizedImg.transpose([0, 3, 1, 2]);
-            const tensorData = transposedImg.dataSync();  // Get tensor data
-
-            // Create ONNX tensor and feed it to the model
-            const tensor = new ort.Tensor("float32", tensorData, [1, 3, 64, 64]);
-
-            // Run model inference
-            const feeds = { input: tensor };
-            const results = await session.run(feeds);
-
-            console.log("ONNX Model Output:", results.output.data);
-
-            if (results.output && results.output.data.length > 0) {
-                // Get index of the highest probability class
-                const predictedIndex = results.output.data.indexOf(Math.max(...results.output.data));
-
-                // Get ASL letter corresponding to the index
-                const detectedGesture = ASL_CLASSES[predictedIndex] || "Unknown";
-
-                // Update UI
-                gestureLabel.innerText = `Detected Gesture: ${detectedGesture}`;
-                console.log("Detected Gesture:", detectedGesture);
-            } else {
-                console.warn("No gesture detected.");
-                gestureLabel.innerText = "No gesture detected";
-            }
-
-            img.dispose(); // Dispose of the image tensor to free memory
-            await tf.nextFrame();
-        }
-    } catch (error) {
-        console.error("Error in model inference:", error);
-        gestureLabel.innerText = "Inference error";
-    }
+// Draw bounding box on the video canvas
+function drawBoundingBox(boundingBox) {
+  boundingBoxCtx.clearRect(0, 0, boundingBoxCanvas.width, boundingBoxCanvas.height);  // Clear the previous drawing
+  boundingBoxCtx.strokeStyle = 'red';
+  boundingBoxCtx.lineWidth = 2;
+  boundingBoxCtx.setLineDash([5, 3]);  // Optional: dashed line
+  boundingBoxCtx.strokeRect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
 }
 
-// Initialize everything
-(async () => {
-    await startVideo();
-    const session = await loadModel();
-    if (session) {
-        detectGesture(session);
-    }
-})();
+// Set up webcam and start gesture detection loop
+const detectGesture = async () => {
+  if (!session) return;
+
+  await hands.send({ image: video });
+  requestAnimationFrame(detectGesture);
+};
+
+window.onload = async () => {
+  await setupCamera();
+  await loadModel();
+  detectGesture();
+};
