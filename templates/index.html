@@ -5,23 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ASL Alphabet Detection</title>
     <style>
+        body {
+            background-color: black;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
         #video {
             width: 100%;
             height: auto;
+            display: block;
+            margin: 0 auto;
+            border: 2px solid white;
         }
         .gesture-label {
-            position: absolute;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 5px;
+            padding: 10px;
             border-radius: 5px;
+            font-size: 1.2rem;
+            display: inline-block;
+            margin-top: 10px;
         }
     </style>
+    <!-- Add ONNX Runtime Web script -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 </head>
 <body>
+    <h1>ASL Alphabet Detection</h1>
     <video id="video" autoplay></video>
-    <div id="gesture-label" class="gesture-label"></div>
+    <div id="gesture-label" class="gesture-label">Waiting for gesture...</div>
+    
+    <!-- TensorFlow.js for webcam input -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="/static/script.js"></script>
+    <script src="static/script.js"></script>
 </body>
 </html>
