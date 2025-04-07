@@ -20,9 +20,6 @@ dataset = datasets.ImageFolder(dataset_path, transform=transform)
 # Debugging dataset
 print(f"Total number of images in the dataset: {len(dataset)}")
 print(f"Classes in the dataset: {dataset.classes}")
-class_counts = Counter([label for _, label in dataset])
-print("Class distribution in dataset:")
-print(class_counts)
 
 # Split dataset into training and validation sets
 train_size = int(0.8 * len(dataset))

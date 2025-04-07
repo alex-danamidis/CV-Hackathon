@@ -9,7 +9,7 @@ class ASLModel(nn.Module):
         super(ASLModel, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.fc1 = nn.Linear(64*14*14, 128)
+        self.fc1 = nn.Linear(64*14*14, 128)  # Ensure this matches your architecture
         self.fc2 = nn.Linear(128, 29)  # Adjusted for 29 classes (A-Z + space, delete, nothing)
 
     def forward(self, x):
@@ -22,9 +22,14 @@ class ASLModel(nn.Module):
         x = self.fc2(x)
         return x
 
-# Load the entire model (architecture + weights)
-model_path = r'C:\Users\potte\asl interpreter\CV-Hackathon\asl_model.pt'
-model = torch.load(model_path, weights_only=False)  # Load the full model (architecture + weights)
+# Initialize the model
+model = ASLModel()
+
+# Load the state_dict (weights) into the model
+model_path = r'C:\Users\Tyler\Desktop\Programming\Projects\alex-hackathon\CV-Hackathon\asl_model_state_dict.pt'
+model.load_state_dict(torch.load(model_path))  # Load only the state dict (weights)
+
+# Switch the model to evaluation mode
 model.eval()
 
 # Define the same transformations as during training
@@ -35,9 +40,12 @@ transform = transforms.Compose([
 ])
 
 # Test with a sample image
-img_path = r'C:\Users\potte\asl interpreter\CV-Hackathon\ASL_Dataset\asl_alphabet_test\asl_alphabet_test\I_test.jpg'  # Example path
+img_path = r'C:\Users\Tyler\Desktop\Programming\Projects\alex-hackathon\CV-Hackathon\ASL_Dataset\asl_alphabet_test\asl_alphabet_test\Y_test.jpg'  # Example path
 image = Image.open(img_path).convert("RGB")
 image = transform(image).unsqueeze(0)  # Add batch dimension
+
+# Check image shape
+print(f"Image shape: {image.shape}")  # It should be (1, 3, 64, 64)
 
 # Run inference on the image
 with torch.no_grad():
