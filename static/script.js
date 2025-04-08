@@ -1,4 +1,4 @@
-const asl_classes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ".split("");  // Ensure this matches the model's classes
+const asl_classes = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "space", "delete", "nothing"];  // Ensure this matches the model's classes
 const video = document.getElementById('video');
 const gestureLabel = document.getElementById('gesture-label');
 const canvas = document.getElementById('bounding-box-canvas');
@@ -115,6 +115,8 @@ async function predictGesture() {
 
     try {
         const tensor = preprocessImage(video);
+        console.log("Preprocessed Tensor:", tensor);  // Log the preprocessed tensor
+
         const feeds = { [inputName]: tensor };
         const resultsONNX = await session.run(feeds);
         const outputArray = Array.from(resultsONNX.output.data);
@@ -123,9 +125,13 @@ async function predictGesture() {
 
         // Apply softmax if necessary
         const probabilities = softmax(outputArray);
+        console.log("Probabilities:", probabilities);  // Log the probabilities
 
         // Find the predicted class index
         const predictedIndex = probabilities.indexOf(Math.max(...probabilities));
+        console.log("Predicted Index:", predictedIndex);  // Log the predicted index
+        console.log("Detected Letter:", asl_classes[predictedIndex]);  // Log the detected letter
+
         gestureLabel.textContent = `Detected: ${asl_classes[predictedIndex] || "Unknown"}`;
     } catch (error) {
         console.error("❌ Prediction error:", error);

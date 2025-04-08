@@ -11,7 +11,7 @@ transform = transforms.Compose([
 ])
 
 # Load and preprocess the image
-img_path = r'C:\Users\potte\asl interpreter\CV-Hackathon\ASL_Dataset\asl_alphabet_test\asl_alphabet_test\Q_test.jpg'
+img_path = r'C:\Users\potte\asl interpreter\CV-Hackathon\ASL_Dataset\asl_alphabet_test\asl_alphabet_test\Z_test.jpg'
 image = Image.open(img_path).convert("RGB")
 image = transform(image).unsqueeze(0)  # Add batch dimension
 

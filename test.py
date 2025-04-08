@@ -62,7 +62,7 @@ transform = transforms.Compose([
 ])
 
 # Load and preprocess the image
-img_path = r'/workspaces/CV-Hackathon/ASL_Dataset/asl_alphabet_test/asl_alphabet_test/P_test.jpg'
+img_path = r'ASL_Dataset/asl_alphabet_test/asl_alphabet_test/H_test.jpg'
 image = Image.open(img_path).convert("RGB")
 image = transform(image).unsqueeze(0)  # Add batch dimension
 
