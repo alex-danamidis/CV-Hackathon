@@ -5,7 +5,8 @@ let session;
 
 const loadModel = async () => {
   try {
-    session = await ort.InferenceSession.create(window.location.origin + "/static/asl_model.onnx");
+    // session = await ort.InferenceSession.create(window.location.origin + "/static/asl_model.onnx");
+    session = await ort.InferenceSession.create("/static/asl_model.onnx");
  // Fixed path
     console.log("✅ ONNX Model Loaded");
   } catch (err) {
