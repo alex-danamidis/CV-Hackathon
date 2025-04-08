@@ -5,14 +5,11 @@ let session;
 
 const loadModel = async () => {
   try {
-    // session = await ort.InferenceSession.create(window.location.origin + "/static/asl_model.onnx");
     session = await ort.InferenceSession.create("/static/asl_model.onnx");
- // Fixed path
     console.log("✅ ONNX Model Loaded");
   } catch (err) {
     console.error("❌ Error loading model:", err);
-    gestureLabel.textContent = "Error loading model";
-    gestureLabel.textContent = (err);
+    gestureLabel.textContent = "Error loading model: " + err.message; // Display error message on screen
   }
 };
 
@@ -64,7 +61,7 @@ async function predictGesture() {
     gestureLabel.textContent = aslClasses[predictedIndex] || "Unknown";
   } catch (error) {
     console.error("❌ Prediction error:", error);
-    gestureLabel.textContent = "Prediction Error";
+    gestureLabel.textContent = "Prediction Error: " + error.message; // Display prediction error on screen
   }
 }
 
