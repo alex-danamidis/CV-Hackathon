@@ -11,50 +11,52 @@
       color: white;
       font-family: Arial, sans-serif;
     }
+    #video-container {
+      position: relative;
+      display: inline-block;
+    }
     #video {
       width: 100%;
       height: auto;
       display: block;
       margin: 0 auto;
       border: 2px solid white;
-      position: relative;
+    }
+    #bounding-box-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* Allow interaction with video */
     }
     .gesture-label {
       background-color: rgba(0, 0, 0, 0.7);
       color: white;
       padding: 10px;
       border-radius: 5px;
-      font-size: 1.2rem;
+      font-size: 1.5rem;
       display: inline-block;
       margin-top: 10px;
     }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;  /* To allow video interaction without interference */
-    }
   </style>
 
-  <!-- ONNX Runtime Web -->
+  <!-- Dependencies -->
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
-  <!-- TensorFlow.js -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <!-- MediaPipe Hands -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 </head>
 <body>
   <h1>ASL Alphabet Detection</h1>
-  <div style="position: relative; display: inline-block;">
-    <video id="video" autoplay muted></video>
-    <!-- Canvas for bounding box overlay -->
+  <div id="video-container">
+    <video id="video" autoplay muted playsinline></video>
     <canvas id="bounding-box-canvas"></canvas>
   </div>
   <div id="gesture-label" class="gesture-label">Waiting for gesture...</div>
 
-  <!-- Your Script -->
+  <!-- Load Main Script -->
   <script src="/static/script.js"></script>
 </body>
 </html>

@@ -3,56 +3,78 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image
 
-# Define the ASLModel class (same as in your training script)
+# Define the ASLModel class (matching model.py)
 class ASLModel(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes):
         super(ASLModel, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.fc1 = nn.Linear(64*14*14, 128)  # Ensure this matches your architecture
-        self.fc2 = nn.Linear(128, 29)  # Adjusted for 29 classes (A-Z + space, delete, nothing)
+
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2)
+        )
+
+        self.fc = nn.Sequential(
+            nn.Linear(256 * 4 * 4, 512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, num_classes)
+        )
 
     def forward(self, x):
-        x = torch.relu(self.conv1(x))
-        x = torch.max_pool2d(x, 2)
-        x = torch.relu(self.conv2(x))
-        x = torch.max_pool2d(x, 2)
+        x = self.conv_layers(x)
         x = torch.flatten(x, 1)
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = self.fc(x)
         return x
 
-# Initialize the model
-model = ASLModel()
+# Initialize the model with correct class count
+num_classes = 29  # A-Z + space, delete, nothing
+model = ASLModel(num_classes)
 
 # Load the state_dict (weights) into the model
-model_path = r'C:\Users\Tyler\Desktop\Programming\Projects\alex-hackathon\CV-Hackathon\asl_model_state_dict.pt'
-model.load_state_dict(torch.load(model_path))  # Load only the state dict (weights)
+model_path = r'/workspaces/CV-Hackathon/asl_model_state_dict.pt'
+model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))  # Ensure compatibility
 
-# Switch the model to evaluation mode
+# Switch to evaluation mode
 model.eval()
 
-# Define the same transformations as during training
+# Define the same transformations as training
 transform = transforms.Compose([
     transforms.Resize((64, 64)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Match training normalization
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
-# Test with a sample image
-img_path = r'C:\Users\Tyler\Desktop\Programming\Projects\alex-hackathon\CV-Hackathon\ASL_Dataset\asl_alphabet_test\asl_alphabet_test\Y_test.jpg'  # Example path
+# Load and preprocess the image
+img_path = r'/workspaces/CV-Hackathon/ASL_Dataset/asl_alphabet_test/asl_alphabet_test/P_test.jpg'
 image = Image.open(img_path).convert("RGB")
 image = transform(image).unsqueeze(0)  # Add batch dimension
 
 # Check image shape
-print(f"Image shape: {image.shape}")  # It should be (1, 3, 64, 64)
+print(f"Image shape: {image.shape}")  # Should be (1, 3, 64, 64)
 
-# Run inference on the image
+# Run inference
 with torch.no_grad():
     output = model(image)
     predicted_class = torch.argmax(output, dim=1).item()
 
-# Define ASL classes (ensure this matches your training)
+# Define ASL classes
 asl_classes = [chr(i) for i in range(65, 91)] + ['space', 'delete', 'nothing']
 
 print(f"Predicted Letter: {asl_classes[predicted_class]}")
