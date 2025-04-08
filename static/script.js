@@ -5,10 +5,12 @@ const gestureLabel = document.getElementById('gesture-label');
 let session;
 const loadModel = async () => {
   try {
-    session = await ort.InferenceSession.create('static/asl_model.onnx');
+    // Path should be relative to your Flask static folder
+    session = await ort.InferenceSession.create('/static/asl_model.onnx');
     console.log('Model loaded');
   } catch (err) {
     console.error('Error loading model:', err);
+    gestureLabel.textContent = 'Error loading model';
   }
 };
 
@@ -19,6 +21,7 @@ const setupCamera = async () => {
     video.srcObject = stream;
   } catch (err) {
     console.error('Error accessing webcam: ', err);
+    gestureLabel.textContent = 'Error accessing webcam';
   }
 };
 
